@@ -296,6 +296,22 @@ const formatDateTime = (value) => {
   });
 };
 
+const useIsMobile = () => {
+  const getIsMobile = () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
+  const [isMobile, setIsMobile] = useState(getIsMobile);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia("(max-width: 760px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+};
+
 // ── Styles ─────────────────────────────────────────────────────────────────
 const S = {
   app: {
@@ -507,9 +523,10 @@ function Spinner() {
 
 // ── Pages ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ setPage, activity }) {
+function Dashboard({ setPage, activity, isMobile }) {
   const stats = buildUserStats(activity);
   const alerts = buildRecentAlerts(activity);
+  const cardStyle = isMobile ? { ...S.card, padding: 16 } : S.card;
 
   const statCards = [
     { label: "Total Analyses", value: stats.total_analyses.toLocaleString(), color: "#00d4aa", icon: "🔍" },
@@ -520,41 +537,41 @@ function Dashboard({ setPage, activity }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: isMobile ? 24 : 32 }}>
         <h1 style={S.h1}>Threat Intelligence Dashboard</h1>
         <p style={{ color: "#64748b", margin: 0 }}>Real-time scam detection and reporting system</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 20 : 32 }}>
         {statCards.map((c, i) => (
           <div key={i} style={S.statCard(c.color)}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>{c.icon}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: c.color, letterSpacing: "-0.02em" }}>{c.value}</div>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, color: c.color, letterSpacing: "-0.02em" }}>{c.value}</div>
             <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{c.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-        <div style={S.card}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginBottom: 24 }}>
+        <div style={cardStyle}>
           <h2 style={S.h2}>Activity (Last 7 Days)</h2>
-          <BarChart data={stats.recent_trend} height={140} />
+          <BarChart data={stats.recent_trend} height={isMobile ? 120 : 140} />
         </div>
-        <div style={S.card}>
+        <div style={cardStyle}>
           <h2 style={S.h2}>Detected Scams by Type</h2>
           <DonutChart data={stats.scams_by_type} />
         </div>
       </div>
 
-      <div style={S.card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={cardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20, flexDirection: isMobile ? "column" : "row" }}>
           <h2 style={{ ...S.h2, margin: 0 }}>Recent Alerts</h2>
           <button style={S.btn("secondary")} onClick={() => setPage("analytics")}>View All →</button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {alerts.map(r => (
             <div key={r.id} style={{
-              display: "flex", alignItems: "center", gap: 16,
+              display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 16, flexDirection: isMobile ? "column" : "row",
               padding: "14px 16px", background: "#080b0f", borderRadius: 8,
               border: "1px solid #1e2533",
             }}>
@@ -580,7 +597,7 @@ function Dashboard({ setPage, activity }) {
   );
 }
 
-function ScanPage({ setPage, setSharedResult, addToast, recordAnalysis }) {
+function ScanPage({ setPage, setSharedResult, addToast, recordAnalysis, isMobile }) {
   const [tab, setTab] = useState("text");
   const [textInput, setTextInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
@@ -653,15 +670,15 @@ function ScanPage({ setPage, setSharedResult, addToast, recordAnalysis }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: isMobile ? 24 : 32 }}>
         <h1 style={S.h1}>Scan for Scams</h1>
         <p style={{ color: "#64748b", margin: 0 }}>Paste text, URL, or upload network logs to analyze</p>
       </div>
 
-      <div style={S.card}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      <div style={isMobile ? { ...S.card, padding: 16 } : S.card}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
           {["text", "url", "network"].map(t => (
-            <button key={t} style={tabStyle(t)} onClick={() => setTab(t)}>
+            <button key={t} style={{ ...tabStyle(t), flex: isMobile ? "1 1 140px" : "0 0 auto" }} onClick={() => setTab(t)}>
               {t === "text" ? "📝 SMS/Email Text" : t === "url" ? "🔗 URL" : "📊 Network Logs"}
             </button>
           ))}
@@ -708,11 +725,11 @@ function ScanPage({ setPage, setSharedResult, addToast, recordAnalysis }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-          <button style={{ ...S.btn(), fontSize: 15, padding: "12px 28px" }} onClick={analyze} disabled={loading}>
+        <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+          <button style={{ ...S.btn(), fontSize: 15, padding: "12px 28px", width: isMobile ? "100%" : "auto" }} onClick={analyze} disabled={loading}>
             {loading ? "Analyzing…" : "🔍 Analyze Now"}
           </button>
-          <button style={S.btn("secondary")} onClick={() => {
+          <button style={{ ...S.btn("secondary"), width: isMobile ? "100%" : "auto" }} onClick={() => {
             if (tab === "text") setTextInput(sampleTexts.text);
             else if (tab === "url") setUrlInput(sampleTexts.url);
             else setNetworkInput(sampleTexts.network);
@@ -727,7 +744,7 @@ function ScanPage({ setPage, setSharedResult, addToast, recordAnalysis }) {
   );
 }
 
-function ResultsPage({ result, setPage, addToast }) {
+function ResultsPage({ result, setPage, addToast, isMobile }) {
   if (!result) return (
     <div style={{ textAlign: "center", padding: "80px 0" }}>
       <div style={{ fontSize: 64, marginBottom: 16 }}>🔍</div>
@@ -742,12 +759,12 @@ function ResultsPage({ result, setPage, addToast }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: isMobile ? 24 : 32 }}>
         <h1 style={S.h1}>Analysis Results</h1>
         <p style={{ color: "#64748b", margin: 0 }}>ID: {result.analysis_id} · {new Date(result.timestamp).toLocaleString()}</p>
       </div>
 
-      <div style={{ ...S.card, borderLeft: `4px solid ${riskColors.text}`, marginBottom: 24 }}>
+      <div style={{ ...S.card, padding: isMobile ? 16 : 24, borderLeft: `4px solid ${riskColors.text}`, marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
           <div style={{ fontSize: 48 }}>{SCAM_ICONS[result.scam_type] || "⚠"}</div>
           <div style={{ flex: 1 }}>
@@ -760,12 +777,12 @@ function ResultsPage({ result, setPage, addToast }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-        <div style={S.card}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginBottom: 24 }}>
+        <div style={isMobile ? { ...S.card, padding: 16 } : S.card}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#94a3b8" }}>📋 EXPLANATION</h3>
           <p style={{ fontSize: 14, lineHeight: 1.7, color: "#cbd5e1", margin: 0 }}>{result.explanation}</p>
         </div>
-        <div style={S.card}>
+        <div style={isMobile ? { ...S.card, padding: 16 } : S.card}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#94a3b8" }}>🔑 INDICATORS DETECTED</h3>
           {result.keywords_found?.length > 0 ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -784,7 +801,7 @@ function ResultsPage({ result, setPage, addToast }) {
       </div>
 
       {result.url_analysis && (
-        <div style={{ ...S.card, marginBottom: 24 }}>
+        <div style={{ ...S.card, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#94a3b8" }}>🌐 URL ANALYSIS</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
             {[
@@ -807,7 +824,7 @@ function ResultsPage({ result, setPage, addToast }) {
       )}
 
       {result.anomaly_analysis && (
-        <div style={{ ...S.card, marginBottom: 24 }}>
+        <div style={{ ...S.card, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#94a3b8" }}>📊 ANOMALY ANALYSIS</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
             {[
@@ -829,7 +846,7 @@ function ResultsPage({ result, setPage, addToast }) {
         </div>
       )}
 
-      <div style={{ ...S.card, marginBottom: 24 }}>
+      <div style={{ ...S.card, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#94a3b8" }}>🛡 RECOMMENDATIONS</h3>
         <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
           {(result.recommendations || []).map((rec, i) => (
@@ -842,11 +859,11 @@ function ResultsPage({ result, setPage, addToast }) {
       </div>
 
       {isScam && (
-        <div style={{ display: "flex", gap: 12 }}>
-          <button style={{ ...S.btn(), fontSize: 15, padding: "12px 28px" }} onClick={() => setPage("report")}>
+        <div style={{ display: "flex", gap: 12, flexDirection: isMobile ? "column" : "row" }}>
+          <button style={{ ...S.btn(), fontSize: 15, padding: "12px 28px", width: isMobile ? "100%" : "auto" }} onClick={() => setPage("report")}>
             📋 Report This Scam
           </button>
-          <button style={S.btn("secondary")} onClick={() => setPage("scan")}>
+          <button style={{ ...S.btn("secondary"), width: isMobile ? "100%" : "auto" }} onClick={() => setPage("scan")}>
             🔍 Scan Another
           </button>
         </div>
@@ -855,7 +872,7 @@ function ResultsPage({ result, setPage, addToast }) {
   );
 }
 
-function ReportPage({ result, addToast, recordReport }) {
+function ReportPage({ result, addToast, recordReport, isMobile }) {
   const [form, setForm] = useState({
     scam_type: result?.scam_type || "",
     risk_level: result?.risk_level || "Medium",
@@ -914,13 +931,13 @@ function ReportPage({ result, addToast, recordReport }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: isMobile ? 24 : 32 }}>
         <h1 style={S.h1}>Report a Scam</h1>
         <p style={{ color: "#64748b", margin: 0 }}>Help protect others by reporting scam activity</p>
       </div>
 
-      <div style={S.card}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      <div style={isMobile ? { ...S.card, padding: 16 } : S.card}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20, marginBottom: 20 }}>
           <div>
             <label style={S.label}>Scam Type *</label>
             <select value={form.scam_type} onChange={e => update("scam_type", e.target.value)} style={{ ...S.input, cursor: "pointer" }}>
@@ -971,7 +988,7 @@ function ReportPage({ result, addToast, recordReport }) {
           </div>
         </div>
 
-        <button style={{ ...S.btn(), fontSize: 15, padding: "12px 32px" }} onClick={submit} disabled={loading}>
+        <button style={{ ...S.btn(), fontSize: 15, padding: "12px 32px", width: isMobile ? "100%" : "auto" }} onClick={submit} disabled={loading}>
           {loading ? "Submitting…" : "📋 Submit Report"}
         </button>
       </div>
@@ -979,7 +996,7 @@ function ReportPage({ result, addToast, recordReport }) {
   );
 }
 
-function AnalyticsPage({ addToast, activity }) {
+function AnalyticsPage({ addToast, activity, isMobile }) {
   const reports = activity.reports;
   const [filter, setFilter] = useState({ type: "", risk: "", status: "" });
 
@@ -995,33 +1012,33 @@ function AnalyticsPage({ addToast, activity }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: isMobile ? 24 : 32 }}>
         <h1 style={S.h1}>Analytics & Reports</h1>
         <p style={{ color: "#64748b", margin: 0 }}>View and manage all reported scams</p>
       </div>
 
-      <div style={{ ...S.card, marginBottom: 24 }}>
+      <div style={{ ...S.card, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
         <h3 style={{ ...S.h2, marginBottom: 16 }}>Filters</h3>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
           <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))}
-            style={{ ...S.input, width: "auto", minWidth: 200 }}>
+            style={{ ...S.input, width: isMobile ? "100%" : "auto", minWidth: isMobile ? 0 : 200 }}>
             <option value="">All Types</option>
             {SCAM_TYPES.filter(t => t !== "Legitimate").map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={filter.risk} onChange={e => setFilter(f => ({ ...f, risk: e.target.value }))}
-            style={{ ...S.input, width: "auto", minWidth: 140 }}>
+            style={{ ...S.input, width: isMobile ? "100%" : "auto", minWidth: isMobile ? 0 : 140 }}>
             <option value="">All Risk Levels</option>
             {["Critical", "High", "Medium", "Low"].map(r => <option key={r}>{r}</option>)}
           </select>
           <select value={filter.status} onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
-            style={{ ...S.input, width: "auto", minWidth: 140 }}>
+            style={{ ...S.input, width: isMobile ? "100%" : "auto", minWidth: isMobile ? 0 : 140 }}>
             <option value="">All Statuses</option>
             {["submitted", "pending", "reviewed", "confirmed", "dismissed"].map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
       </div>
 
-      <div style={S.card}>
+      <div style={isMobile ? { ...S.card, padding: 16 } : S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ ...S.h2, margin: 0 }}>Reports ({filtered.length})</h2>
         </div>
@@ -1077,6 +1094,7 @@ export default function App() {
   const [sharedResult, setSharedResult] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [activity, setActivity] = useState(readUserActivity);
+  const isMobile = useIsMobile();
 
   const addToast = useCallback((message, type = "success") => {
     const id = Date.now();
@@ -1146,7 +1164,44 @@ export default function App() {
     activity,
     recordAnalysis,
     recordReport,
+    isMobile,
   };
+
+  const appStyle = isMobile ? { ...S.app, flexDirection: "column" } : S.app;
+  const sidebarStyle = isMobile ? {
+    ...S.sidebar,
+    width: "100%",
+    minHeight: "auto",
+    height: "auto",
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    padding: "14px 0 8px",
+    borderRight: "none",
+    borderBottom: "1px solid #1e2533",
+    overflowX: "auto",
+    overflowY: "hidden",
+  } : S.sidebar;
+  const logoStyle = isMobile ? {
+    ...S.logo,
+    padding: "0 16px 12px",
+    marginBottom: 6,
+    borderBottom: "none",
+  } : S.logo;
+  const navItemStyle = (active) => isMobile ? {
+    ...S.navItem(active),
+    padding: "9px 12px",
+    borderLeft: "none",
+    borderBottom: active ? "2px solid #00d4aa" : "2px solid transparent",
+    whiteSpace: "nowrap",
+    flex: "0 0 auto",
+  } : S.navItem(active);
+  const mainStyle = isMobile ? {
+    ...S.main,
+    width: "100%",
+    maxWidth: "100%",
+    padding: "20px 16px 32px",
+  } : S.main;
 
   return (
     <>
@@ -1165,27 +1220,29 @@ export default function App() {
         @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       `}</style>
       <Toast toasts={toasts} remove={removeToast} />
-      <div style={S.app}>
-        <nav style={S.sidebar}>
-          <div style={S.logo}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#00d4aa", letterSpacing: "-0.02em" }}>
+      <div style={appStyle}>
+        <nav style={sidebarStyle}>
+          <div style={logoStyle}>
+            <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, color: "#00d4aa", letterSpacing: "-0.02em" }}>
               🛡 ScamShield
             </div>
             <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>AI Detection System</div>
           </div>
-          {navItems.map(n => (
-            <div key={n.id} style={S.navItem(page === n.id)} onClick={() => setPage(n.id)}>
-              <span style={{ fontSize: 18 }}>{n.icon}</span>
-              <span>{n.label}</span>
-            </div>
-          ))}
-          <div style={{ flex: 1 }} />
-          <div style={{ padding: "16px 24px", borderTop: "1px solid #1e2533", fontSize: 11, color: "#475569" }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", overflowX: isMobile ? "auto" : "visible" }}>
+            {navItems.map(n => (
+              <div key={n.id} style={navItemStyle(page === n.id)} onClick={() => setPage(n.id)}>
+                <span style={{ fontSize: 18 }}>{n.icon}</span>
+                <span>{n.label}</span>
+              </div>
+            ))}
+          </div>
+          {!isMobile && <div style={{ flex: 1 }} />}
+          <div style={{ display: isMobile ? "none" : "block", padding: "16px 24px", borderTop: "1px solid #1e2533", fontSize: 11, color: "#475569" }}>
             <div style={{ marginBottom: 4 }}>🔒 Data Anonymized</div>
             <div>v1.0.0 · cybercrime.gov.in</div>
           </div>
         </nav>
-        <main style={S.main}>
+        <main style={mainStyle}>
           {page === "dashboard" && <Dashboard {...pageProps} />}
           {page === "scan" && <ScanPage {...pageProps} />}
           {page === "results" && <ResultsPage {...pageProps} />}
